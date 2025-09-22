@@ -7,7 +7,9 @@ import { useRouter } from "next/router";
 import { CloseEye, OpenEye } from "@/svg";
 import ErrorMsg from "../common/error-msg";
 import { notifyError, notifySuccess } from "@/utils/toast";
-import { useRegisterUserMutation } from "@/redux/features/auth/authApi";
+import { useFirebaseAuth } from "@/firebase/useFirebaseAuth";
+import { updateProfile } from "firebase/auth";
+import { auth } from "@/firebase/config";
 
 // schema
 const schema = Yup.object().shape({
@@ -21,28 +23,33 @@ const schema = Yup.object().shape({
 
 const RegisterForm = () => {
   const [showPass, setShowPass] = useState(false);
-  const [registerUser, {}] = useRegisterUserMutation();
+  const [loading, setLoading] = useState(false);
+  const { registerWithEmail } = useFirebaseAuth();
   const router = useRouter();
   const { redirect } = router.query;
+
   // react hook form
-  const {register,handleSubmit,formState: { errors },reset} = useForm({
+  const {register, handleSubmit, formState: { errors }, reset} = useForm({
     resolver: yupResolver(schema),
   });
+
   // on submit
-  const onSubmit = (data) => {
-    registerUser({
-      name: data.name,
-      email: data.email,
-      password: data.password,
-    }).then((result) => {
-      if (result?.error) {
-        notifyError("Register Failed");
-      } else {
-        notifySuccess(result?.data?.message);
-        // router.push(redirect || "/");
-      }
-    });
-    reset();
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      const userCredential = await registerWithEmail(data.email, data.password);
+      // Update user profile with name
+      await updateProfile(auth.currentUser, {
+        displayName: data.name
+      });
+      notifySuccess("Registration successful!");
+      router.push(redirect || "/");
+    } catch (error) {
+      notifyError(error.message);
+    } finally {
+      setLoading(false);
+      reset();
+    }
   };
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
