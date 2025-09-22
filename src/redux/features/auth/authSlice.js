@@ -2,8 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import Cookies from "js-cookie";
 
 const initialState = {
-  accessToken: undefined,
   user: undefined,
+  loading: true,
 };
 
 const authSlice = createSlice({
@@ -11,12 +11,14 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     userLoggedIn: (state, { payload }) => {
-      state.accessToken = payload.accessToken;
-      state.user = payload.user;
+      state.user = payload;
+      state.loading = false;
+      // Store user info in cookies
+      Cookies.set('userInfo', JSON.stringify(payload), { expires: 7 });
     },
     userLoggedOut: (state) => {
-      state.accessToken = undefined;
       state.user = undefined;
+      state.loading = false;
       Cookies.remove('userInfo');
     },
   },

@@ -7,8 +7,8 @@ import Link from 'next/link';
 // internal
 import { CloseEye, OpenEye } from '@/svg';
 import ErrorMsg from '../common/error-msg';
-import { useLoginUserMutation } from '@/redux/features/auth/authApi';
 import { notifyError, notifySuccess } from '@/utils/toast';
+import { useFirebaseAuth } from '@/firebase/useFirebaseAuth';
 
 
 // schema
@@ -18,9 +18,11 @@ const schema = Yup.object().shape({
 });
 const LoginForm = () => {
   const [showPass, setShowPass] = useState(false);
-  const [loginUser, { }] = useLoginUserMutation();
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { redirect } = router.query;
+  const { loginWithEmail } = useFirebaseAuth();
+
   // react hook form
   const {
     register,
@@ -30,22 +32,20 @@ const LoginForm = () => {
   } = useForm({
     resolver: yupResolver(schema),
   });
+
   // onSubmit
-  const onSubmit = (data) => {
-    loginUser({
-      email: data.email,
-      password: data.password,
-    })
-      .then((data) => {
-        if (data?.data) {
-          notifySuccess("Login successfully");
-          router.push(redirect || "/");
-        }
-        else {
-          notifyError(data?.error?.data?.error)
-        }
-      })
-    reset();
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      await loginWithEmail(data.email, data.password);
+      notifySuccess("Login successful");
+      router.push(redirect || "/");
+    } catch (error) {
+      notifyError(error.message);
+    } finally {
+      setLoading(false);
+      reset();
+    }
   };
   return (
     <form onSubmit={handleSubmit(onSubmit)}>

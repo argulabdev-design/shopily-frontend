@@ -1,33 +1,40 @@
 import React from "react";
 import Image from "next/image";
-import { GoogleLogin } from "@react-oauth/google";
 import { useRouter } from "next/router";
 // internal
 import google_icon from "@assets/img/icon/login/google.svg";
-import { useSignUpProviderMutation } from "@/redux/features/auth/authApi";
+import { useFirebaseAuth } from "@/firebase/useFirebaseAuth";
 import { notifyError, notifySuccess } from "@/utils/toast";
 
 const GoogleSignUp = () => {
-  const [signUpProvider, {}] = useSignUpProviderMutation();
   const router = useRouter();
   const { redirect } = router.query;
+  const { loginWithGoogle } = useFirebaseAuth();
+
   // handleGoogleSignIn
-  const handleGoogleSignIn = (user) => {
-    if (user) {
-      signUpProvider(user?.credential).then((res) => {
-        if (res?.data) {
-          notifySuccess("Login success!");
-          router.push(redirect || "/");
-        } else {
-       
-          notifyError(res.error?.message);
-        }
-      });
+  const handleGoogleSignIn = async () => {
+    try {
+      await loginWithGoogle();
+      notifySuccess("Login successful!");
+      router.push(redirect || "/");
+    } catch (error) {
+      notifyError(error.message);
     }
   };
+
   return (
-    <GoogleLogin
-      render={(renderProps) => (
+    <button 
+      type="button"
+      onClick={handleGoogleSignIn}
+      className="tp-login-google-btn w-100"
+    >
+      <Image src={google_icon} alt="google" />
+      Sign in with Google
+    </button>
+  );
+};
+
+export default GoogleSignUp;
         <a
           className="cursor-pointer"
           onClick={renderProps.onClick}
